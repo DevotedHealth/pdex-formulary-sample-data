@@ -14,10 +14,16 @@ module Formulary
 
     def import
       urls.each do |url|
-        qhp_raw_data = HTTParty.get(url, verify: false) # FIXME
-        qhp_json.concat(JSON.parse(qhp_raw_data, symbolize_names: true))
+        file_path = File.join(url,  '**/*.json')
+        filenames = Dir.glob(file_path)
+        puts "Reading #{filenames.length} file(s) from #{url}"
+
+        filenames.each do |filename|
+          qhp_raw_data = File.read(filename)
+          qhp_json.concat(JSON.parse(qhp_raw_data, symbolize_names: true))
+          repo.import(qhp_json)
+        end
       end
-      repo.import(qhp_json)
     end
 
     def qhp_json
