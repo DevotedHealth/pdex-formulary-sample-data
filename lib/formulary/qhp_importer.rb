@@ -19,8 +19,10 @@ module Formulary
         puts "Reading #{filenames.length} file(s) from #{url}"
 
         filenames.each do |filename|
-          qhp_raw_data = File.read(filename)
-          qhp_json.concat(JSON.parse(qhp_raw_data, symbolize_names: true))
+          qhp_raw_data = File.read(filename).split("\n")
+          qhp_raw_data.each { |line|
+            qhp_json.push(JSON.parse(line, symbolize_names: true))
+          }
           repo.import(qhp_json)
         end
       end
