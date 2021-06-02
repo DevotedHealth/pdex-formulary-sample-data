@@ -1,7 +1,7 @@
 require 'json'
 require 'pry'
 
-FHIR_SERVER_BASE = "http://davinci-plan-net-ri.logicahealth.org/plan-net"
+FHIR_SERVER_BASE = "https://fhir.dev.devoted.com/fhir"
 
 # First output the *List*.json, these are the CoveragePlan profile instances
 puts "working on input directory: output..."
@@ -44,7 +44,7 @@ puts "writing to export/#{outfile}"
         "requiresAccessToken" => false,
         "output" => ndouts,
         "error" => { "type" => "OperationOutcome",
-                    "url" =>  "http://#{FHIR_SERVER_BASE}/resources/err_file_1.ndjson"}
+                    "url" =>  "#{FHIR_SERVER_BASE}/resources/err_file_1.ndjson"}
     }
     export = File.open("export/export.json","w")
     export.write(JSON.pretty_generate(output))
