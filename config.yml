@@ -1,5 +1,5 @@
 plan_urls:
-  - ./plans
+  - ./sample-data/plans
 drug_urls:
-  - ./drugs
+  - ./sample-data/drugs
 max_drugs_per_plan: 30000
