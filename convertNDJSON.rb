@@ -38,6 +38,42 @@ puts "writing to export/#{outfile}"
         end
         o.close
     end
+
+    # Add provider directory resources
+    # HACK! TODO figure out best approach to manage dependencies across libraries
+    ndouts.concat([{
+      "type": "Organization",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/Organization.ndjson"
+    },
+    {
+      "type": "Practitioner",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/Practitioner.ndjson"
+    },
+    {
+      "type": "Location",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/Location.ndjson"
+    },
+    {
+      "type": "HealthcareService",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/HealthcareService.ndjson"
+    },
+    {
+      "type": "Endpoint",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/Endpoint.ndjson"
+    },
+    {
+      "type": "InsurancePlan",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/InsurancePlan.ndjson"
+    },
+    {
+      "type": "PractitionerRole",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/PractitionerRole.ndjson"
+    },
+    {
+      "type": "OrganizationAffiliation",
+      "url": "https://fhir.dev.devoted.com/fhir/resources/OrganizationAffiliation.ndjson"
+    }])
+
     output = {
         "transactionTime" => Time.now.strftime("%d/%m/%Y %H:%M"),
         "request" => "#{FHIR_SERVER_BASE}/fhir/$export",
