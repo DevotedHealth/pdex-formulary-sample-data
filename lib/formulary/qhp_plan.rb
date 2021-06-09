@@ -20,6 +20,10 @@ module Formulary
       @id ||= raw_plan[:plan_id]
     end
 
+    def uuid
+      @uuid ||= raw_plan[:plan_uuid]
+    end
+
     def marketing_name
       @marketing_name ||= raw_plan[:marketing_name]
     end

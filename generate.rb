@@ -19,5 +19,9 @@ Formulary::QHPImporter
   .import
 
 plan_repo.all.each do |plan|
+  puts "Loading #{plan.id}"
+  start = Time.now
   Formulary::DrugListGenerator.new(plan).generate
+  finish = Time.now
+  puts "Finished in #{finish - start} seconds"
 end

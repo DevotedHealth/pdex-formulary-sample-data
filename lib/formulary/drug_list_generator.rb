@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'digest'
 require 'json'
 require_relative 'config'
 require_relative 'qhp_drug_repo'
@@ -28,7 +27,7 @@ module Formulary
     end
 
     def id_prefix
-      @id_prefix ||= ::Digest::SHA1.hexdigest(plan.id)[0..5]
+      @id_prefix ||= plan.uuid[0...5]
     end
 
     private
