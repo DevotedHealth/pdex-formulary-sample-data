@@ -147,7 +147,7 @@ def upload_resources(resource_type, resources)
     "#{FHIR_SERVER}",
     body: bundle.to_json,
     headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-    timeout: 120
+    timeout: 240
   )
 end
 
