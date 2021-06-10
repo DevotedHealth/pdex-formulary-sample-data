@@ -6,24 +6,7 @@ require 'tmpdir'
 require 'fileutils'
 
 FHIR_SERVER = 'http://localhost:8080/plan-net/fhir'
-
-def upload_conformance_resources_from_git
-  begin
-    file_path = File.join(Dir.tmpdir, SecureRandom.uuid)
-    git_repo = Git.clone('https://github.com/HL7/davinci-pdex-formulary.git', file_path)
-    tree = git_repo.gtree('HEAD')
-    files = tree.subdirectories['resources'].files
-    files
-      .select { |filename, _| filename.end_with? 'json' }
-      .each do |filename, data|
-        resource = JSON.parse(data.contents, symbolize_names: true)
-        response = upload_resource(resource)
-        binding.pry unless response.success?
-      end
-  ensure
-    FileUtils.rm_rf(file_path)
-  end
-end
+BATCH_SIZE = 20
 
 def upload_conformance_resources
   definitions_url = 'http://build.fhir.org/ig/HL7/davinci-pdex-formulary/definitions.json.zip'
@@ -35,21 +18,48 @@ def upload_conformance_resources
     definitions_file.close
   end
 
+  resources = {}
+
   Zip::File.open(definitions_file.path) do |zip_file|
     zip_file.entries
       .select { |entry| entry.name.end_with? '.json' }
       .reject { |entry| entry.name.start_with? 'ImplementationGuide' }
       .each do |entry|
         resource = JSON.parse(entry.get_input_stream.read, symbolize_names: true)
-        response = upload_resource(resource)
+        
+        # aggregate resources
+        resources[resource[:resourceType]] = [] unless resources.key?(resource[:resourceType])
+        resources[resource[:resourceType]].push(resource)
+
+        if resources[resource[:resourceType]].length() >= BATCH_SIZE
+          puts "uploading batch of #{resources[resource[:resourceType]].length()}"
+          upload_start = Time.now
+          response = upload_resources(resource[:resourceType], resources[resource[:resourceType]])
+          upload_finish = Time.now
+          puts "upload time: #{upload_finish - upload_start}"
+          resources[resource[:resourceType]] = [] unless !response.success?
+          puts response unless response.success?
+        end
         # binding.pry unless response.success?
       end
   end
+
+  resources.each do |key, value|
+    puts "uploading last batch"
+    upload_start = Time.now
+    response = upload_resources(key, value)
+    upload_finish = Time.now
+    puts "upload time: #{upload_finish - upload_start}"
+    resources[key] = [] unless !response.success?
+    puts response unless response.success?
+  end
+
 ensure
   definitions_file.unlink
 end
 
 def upload_devoted_resources
+  resources = {}
   file_path = File.join(__dir__, 'output', '**/*.json')
   filenames =
     Dir.glob(file_path)
@@ -58,15 +68,37 @@ def upload_devoted_resources
   puts "Uploading #{filenames.length} resources"
   filenames.each_with_index do |filename, index|
     resource = JSON.parse(File.read(filename), symbolize_names: true)
-    response = upload_resource(resource)
-    # binding.pry unless response.success?
+    resources[resource[:resourceType]] = [] unless resources.key?(resource[:resourceType])
+    resources[resource[:resourceType]].push(resource)
+    
+    if resources[resource[:resourceType]].length() >= BATCH_SIZE
+      puts "uploading batch of #{resources[resource[:resourceType]].length()} #{resource[:resourceType]} resources"
+      upload_start = Time.now
+      response = upload_resources(resource[:resourceType], resources[resource[:resourceType]])
+      upload_finish = Time.now
+      puts "upload time: #{upload_finish - upload_start}"
+      resources[resource[:resourceType]] = [] unless !response.success?
+      puts response unless response.success?
+    end
+
     if index % 100 == 0
       puts index
     end
   end
+
+  resources.each do |key, value|
+    puts "uploading last batch of #{key}"
+    upload_start = Time.now
+    response = upload_resources(key, value)
+    upload_finish = Time.now
+    puts "upload time: #{upload_finish - upload_start}"
+    resources[key] = [] unless !response.success?
+    puts response unless response.success?
+  end
 end
 
 def upload_us_core_resources
+  resources = {}
   file_path = File.join(__dir__, 'us-core', '*.json')
   filenames =
     Dir.glob(file_path)
@@ -76,9 +108,47 @@ def upload_us_core_resources
       .flatten
   filenames.each do |filename|
     resource = JSON.parse(File.read(filename), symbolize_names: true)
-    response = upload_resource(resource)
-    binding.pry unless response.success?
+    resources[resource[:resourceType]] = [] unless resources.key?(resource[:resourceType])
+    resources[resource[:resourceType]].push(resource)
   end
+
+  resources.each do |key, value|
+    puts "uploading last batch of #{key}"
+    upload_start = Time.now
+    response = upload_resources(key, value)
+    upload_finish = Time.now
+    puts "upload time: #{upload_finish - upload_start}"
+    resources[key] = [] unless !response.success?
+    puts response unless response.success?
+  end
+end
+
+def upload_resources(resource_type, resources)
+  bundle = {
+    :resourceType => "Bundle",
+    :id => "bundle-transaction",
+    :type => "transaction",
+    :entry => [],
+  }
+
+  resources.each do |resource|
+    bundle_resource = {
+      :resource => resource,
+      :request => {
+        :method => "POST",
+        :url => resource_type,
+      }
+    }
+
+    bundle[:entry] << bundle_resource
+  end
+
+  HTTParty.post(
+    "#{FHIR_SERVER}",
+    body: bundle.to_json,
+    headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    timeout: 120
+  )
 end
 
 def upload_resource(resource)
@@ -95,6 +165,6 @@ def upload_resource(resource)
 end
 
 
-# upload_us_core_resources
+upload_us_core_resources
 upload_conformance_resources
 upload_devoted_resources
