@@ -6,7 +6,7 @@ require 'tmpdir'
 require 'fileutils'
 
 FHIR_SERVER = 'http://localhost:8080/plan-net/fhir'
-BATCH_SIZE = 20
+BATCH_SIZE = 100
 
 def upload_conformance_resources
   definitions_url = 'http://build.fhir.org/ig/HL7/davinci-pdex-formulary/definitions.json.zip'
